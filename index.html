@@ -64,22 +64,24 @@
 	}
 
 	</style>
-	<!-- <script type="text/javascript" src="http://code.jquery.com/jquery-1.7.1.min.js"></script> !-->
+	<!-- <script type="text/javascript" src="http://code.jquery.com/jquery-1.7.1.min.js"></script> -->
 	
 	<script type="text/javascript" src="resources.js"> </script>
 	<script type="text/javascript" src="gl-matrix.js"></script>
 	<script type="text/javascript" src="cube.js"> </script>
 	<script type="text/javascript" src="background.js"></script>
 
-	<body id="body" onload="loadBG();runBackground()">
+	<body id="body" onload="runBackground()">
 	<div id="buttons">
+		<button class="button" onclick="loadBG();"> reload </button>
+<!--	
 		<button class="button" onclick="load(anxiety);"> Anxiety </button>
 		<button class="button" onclick="load(despair);"> Despair </button>
 		<button class="button" onclick="load(eccentricity);"> Eccentricity </button>
 		<button class="button" onclick="load(endeavor);"> Endeavor </button>
 		<button class="button" onclick="load(solitude);"> Solitude </button>
 		<button class="button" onclick="loadBG();"> BG </button>
-		<button class="button" onclick="renderVideosToCubes(eccentricity);"> CUBES </button>
+	<!--	<button class="button" onclick="renderVideosToCubes(eccentricity);"> CUBES </button> -->
 	</div>
     <canvas id = "glcanvas"></canvas> 
     <div id="layers" class="parallax">

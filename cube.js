@@ -39,7 +39,6 @@ const fsSource = `
   }
 `;
 
-
 function renderVideosToCubes(video_urls) {
 is_done = false;
   var canvas = document.getElementById('glcanvas');
@@ -128,6 +127,10 @@ is_done = false;
   //END FOR EACH
 	if(!is_done)
       	requestAnimationFrame(render);
+	else
+	  for(var v in videos)
+		v.pause();
+		
     }
   requestAnimationFrame(render);
 }

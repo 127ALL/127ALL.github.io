@@ -1,6 +1,6 @@
 const NUM_LAYERS = 3;
 var backgroundSrc = null;
-
+var backgroundSrc2 = null;
 function load(res){
 	clearLayers();
 	var copy = res.slice();
@@ -12,11 +12,18 @@ function load(res){
 	}
 }
 function clearLayers(){
+	
 	try{
 		backgroundSrc.pause();
 	}catch(error){
-		console.log();
-	}backgroundSrc=null;
+	}
+
+	try{
+		backgroundSrc2.pause();
+	}catch(error){
+	}
+	backgroundSrc=null;
+	backgroundSrc2=  null;
 	is_done = true;
 	for(var i = 0; i < NUM_LAYERS; i++)
 	{
@@ -72,14 +79,15 @@ function loadBG()
 	try{
 		backgroundSrc.pause();
 	}catch(error){
-		console.log();
 	}
-	backgroundSrc=null;
+
+	try{
+		backgroundSrc2.pause();
+	}catch(error){
+	}
 	var i = Math.floor(Math.random()* 4);
-	var arr = []
-	if(i==0){
-		arr = anxiety.splice();
-	}else if(i==1){
+	var arr = anxiety;
+	if(i==1){
 		arr = despair;
 	}else if(i==2){
 		arr = eccentricity;
@@ -104,7 +112,27 @@ function loadBG()
 			backgroundSrc= document.createElement('img');
 			backgroundSrc.src = arr[i];		
 		}
+		i = Math.floor(Math.random()* arr.length);
+       // video.muted = true;
+        var ext = arr[i].substr(arr[i].lastIndexOf(".")+1, arr[i].length);
+	
+		if(ext == "webm"  || ext == "mp4" ){
+			backgroundSrc2= document.createElement('video');
+			backgroundSrc2.autoplay = true;
+		    backgroundSrc2.loop = true;
+			backgroundSrc2.src = arr[i];
+		    backgroundSrc2.play();       
+			try{
+				backgroundSrc.mute();
+			}catch(error){
+			}
+		}
+		else {
+			backgroundSrc2= document.createElement('img');
+			backgroundSrc2.src = arr[i];		
+		}
 	}
+	
 };
 
 
@@ -174,9 +202,14 @@ var fVidSource = `
 		* (sin(distance(uv, vec2(1,1)*sin(cos(time/100.0))*uv.y-uv.x) * 12.0 - time) + 0.5) / 30.0;
 		vec4 diffuse = texture2D(sampler0, texcoord);
 		vec4 color =  diffuse *  t;
-		if(length(color.xyz) < 0.01)
-			gl_FragColor = texture2D(sampler1, uv);
-		else
+		vec4 bgcolor = texture2D(sampler1, texcoord);
+		float l = normalize(color.x*color.y*color.z);
+		float mixamt = sin(cos(uv.y)*cos(uv.x) )+0.04;
+
+		if( ( color.x < 0.1 && color.y < 0.1 && color.z < 0.1  ) || 
+			( color.x > 0.9 && color.y > 0.9 && color.z > 0.9  ))
+			gl_FragColor =  mix(bgcolor, color, cos(sin(t))*mixamt); 
+		else	
 			gl_FragColor =  color; 
 		
 	}
@@ -186,7 +219,8 @@ var fVidSource = `
 function runBackground(){
 	var canvas = document.getElementById('glcanvas');
 	var gl = canvas.getContext('experimental-webgl');
-
+	setInterval(loadBG, 100000);
+	loadBG();
 	canvas.width  = document.body.clientWidth;
 	canvas.height = document.body.clientHeight;
 	var vidvertices = [   
@@ -287,32 +321,41 @@ function runBackground(){
 	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
 	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
 
-	var targetTexture = gl.createTexture();
-	gl.bindTexture(gl.TEXTURE_2D, targetTexture);
-
-	gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, canvas.width,canvas.height, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
-
+	var otherTexture = gl.createTexture();
+	gl.bindTexture(gl.TEXTURE_2D, otherTexture);
+	pixel = new Uint8Array([0, 255, 255, 255]);  // opaque blue
+	gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, pixel);
 	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
 	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
 	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
 
+/*
+	var targetTexture = gl.createTexture();
+	gl.bindTexture(gl.TEXTURE_2D, targetTexture);
+	targetWidth  = 512;
+	targetHeight  = 512;
+		
+	gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, targetWidth, targetHeight, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
 	const fb = gl.createFramebuffer();
 	gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
-	
 	const attachmentPoint = gl.COLOR_ATTACHMENT0;
 	gl.framebufferTexture2D(gl.FRAMEBUFFER, attachmentPoint, gl.TEXTURE_2D, targetTexture, 0);
-
+	gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+	*/
  	var  start = Date.now();;
 	var elapsed = 0;
 	var speed = 0.01;
+
+		
 	function draw(){
-		setTimeout(function(){
-//    	gl.bindFramebuffer(gl.FRAMEBUFFER, null);
 
 		gl.clearColor(0.0, 0.0, 0.0, 0.0);
 		gl.enable(gl.DEPTH_TEST); 
 		gl.clear(gl.COLOR_BUFFER_BIT);
-			gl.viewport(0,0,canvas.width,canvas.height);			
+		gl.viewport(0,0,canvas.width,canvas.height);			
 	
 		if(backgroundSrc != null)
 		{
@@ -336,12 +379,23 @@ function runBackground(){
 			// bind sampler to TEX 0
 			gl.uniform1i(gl.getUniformLocation(vidshader, "sampler0"), 0);
 
+
+
+			gl.activeTexture(gl.TEXTURE1);
+			gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA,
+					    gl.RGBA, gl.UNSIGNED_BYTE, backgroundSrc2);
+			// bind texture to TEX 0
+			gl.bindTexture(gl.TEXTURE_2D, otherTexture);						
+			// bind sampler to TEX 0
+			gl.uniform1i(gl.getUniformLocation(vidshader, "sampler1"), 1);
+
+/*
 			gl.activeTexture(gl.TEXTURE1);
 			// bind texture to TEX 0
 			gl.bindTexture(gl.TEXTURE_2D, targetTexture);						
 			// bind sampler to TEX 0
 			gl.uniform1i(gl.getUniformLocation(vidshader, "sampler1"), 1);
-
+*/
 
 			var time = gl.getUniformLocation(vidshader, "time");
 			elapsed += (Date.now() - start)*speed;
@@ -351,34 +405,37 @@ function runBackground(){
 			gl.drawElements(gl.TRIANGLES, 6, gl.UNSIGNED_SHORT, 0);
 		}
 	gl.useProgram(shader);
-		gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
-		var coord = gl.getAttribLocation(shader, "coord");
-		gl.vertexAttribPointer(coord, 2, gl.FLOAT, false, 0, 0);
-		gl.enableVertexAttribArray(coord);
-		gl.bindBuffer(gl.ARRAY_BUFFER, uvBuffer);
-		var uv = gl.getAttribLocation(shader, "uv");
-		gl.vertexAttribPointer(uv, 2, gl.FLOAT, false, 0, 0);
-		gl.enableVertexAttribArray(uv);
-		gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
-		//SET UNIFORMS
-		var time = gl.getUniformLocation(shader, "time");
-		elapsed += (Date.now() - start)*speed;
-		gl.uniform1f(time, elapsed);
-		start = Date.now();
-		//DRAW!!
-		gl.drawElements(gl.TRIANGLES, 6, gl.UNSIGNED_SHORT, 0);
+	gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
+	var coord = gl.getAttribLocation(shader, "coord");
+	gl.vertexAttribPointer(coord, 2, gl.FLOAT, false, 0, 0);
+	gl.enableVertexAttribArray(coord);
+	gl.bindBuffer(gl.ARRAY_BUFFER, uvBuffer);
+	var uv = gl.getAttribLocation(shader, "uv");
+	gl.vertexAttribPointer(uv, 2, gl.FLOAT, false, 0, 0);
+	gl.enableVertexAttribArray(uv);
+	gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
+	//SET UNIFORMS
+	var time = gl.getUniformLocation(shader, "time");
+	elapsed += (Date.now() - start)*speed;
+	gl.uniform1f(time, elapsed);
+	start = Date.now();
+	//DRAW!!
+	gl.drawElements(gl.TRIANGLES, 6, gl.UNSIGNED_SHORT, 0);
+/*
+	// render to our targetTexture by binding the framebuffer
+	gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
+	gl.bindTexture(gl.TEXTURE_2D, targetTexture);
+	gl.clearColor(0, 0, 1, 1);   // clear to blue
+	gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+	gl.viewport(0, 0,targetWidth,targetHeight);
+	gl.drawElements(gl.TRIANGLES, 6, gl.UNSIGNED_SHORT, 0);
+	gl.bindFramebuffer(gl.FRAMEBUFFER, null);		
+	
+*/
 
-		// render to our targetTexture by binding the framebuffer
-		gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
-		gl.bindTexture(gl.TEXTURE_2D, targetTexture);
-		gl.clearColor(0, 0, 1, 1);   // clear to blue
-		gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-		//gl.viewport(0, 0,targetWidth,targetHeight);
-		gl.drawElements(gl.TRIANGLES, 6, gl.UNSIGNED_SHORT, 0);
-    	gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-		draw(); //loop
-	}, 60);
-	};
-	draw();
+	requestAnimationFrame(draw);
+	}
+  	requestAnimationFrame(draw);
+	
 }
 
